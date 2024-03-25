@@ -1,29 +1,29 @@
 #!/bin/bash
 
-printf "\nDébut de l'installation\n"
+configure_mosquitto() {
+    printf "\nDébut de l'installation\n"
+    apt update && apt upgrade -y
+    apt install mosquitto mosquitto-clients openssl -y
+    service mosquitto stop
+    mkdir -p /etc/mosquitto/certs
 
-apt update && apt upgrade
-apt install mosquitto mosquitto-clients openssl -y
-printf "\nInstallation fini\n"
+    printf "\nGénération des clés et certificats\n"
+    # Génération des clés et certificats
+    openssl genrsa -des3 -out /etc/mosquitto/certs/ca.key 2048
+    openssl req -new -x509 -days 1826 -key /etc/mosquitto/certs/ca.key -out /etc/mosquitto/certs/ca.crt -subj "/C=FR/ST=State/L=Location/O=Organization/CN=CA"
+    openssl genrsa -out /etc/mosquitto/certs/server.key 2048
+    openssl req -new -out /etc/mosquitto/certs/server.csr -key /etc/mosquitto/certs/server.key -subj "/C=FR/ST=State/L=Location/O=Organization/CN=Server"
+    openssl x509 -req -in /etc/mosquitto/certs/server.csr -CA /etc/mosquitto/certs/ca.crt -CAkey /etc/mosquitto/certs/ca.key -CAcreateserial -out /etc/mosquitto/certs/server.crt -days 360
 
-service mosquitto stop
+    printf "\nConfiguration de Mosquitto\n"
+    # Configuration de Mosquitto
+    echo "listener 8883
+    cafile /etc/mosquitto/certs/ca.crt
+    keyfile /etc/mosquitto/certs/server.key
+    certfile /etc/mosquitto/certs/server.crt" > /etc/mosquitto/conf.d/default.conf
+    printf "\nInstallation Terminé.\n"
 
-mkdir /etc/mosquitto/certs
-cd /etc/mosquitto/certs/
+}
 
-printf "\nGénération des Clés\n"
-
-openssl genrsa -des3 -out ca.key 2048
-openssl req -new -x509 -days 1826 -key ca.key -out ca.crt
-openssl genrsa -out server.key 2048
-openssl req -new -out server.csr -key server.key
-openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 360
-
-printf "\nDébut de Configuration\n"
-
-echo "listener 8883
-cafile /etc/mosquitto/certs/ca.crt
-keyfile /etc/mosquitto/certs/server.key
-certfile /etc/mosquitto/certs/server.crt" > /etc/mosquitto/conf.d/default.conf
-
-printf "\nInstallation Terminé.\n"
+# Appel de la fonction
+configure_mosquitto
