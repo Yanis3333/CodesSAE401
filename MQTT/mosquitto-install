@@ -1,0 +1,29 @@
+#!/bin/bash
+
+printf "\nDébut de l'installation\n"
+
+apt update && apt upgrade
+apt install mosquitto mosquitto-clients openssl -y
+printf "\nInstallation fini\n"
+
+service mosquitto stop
+
+mkdir /etc/mosquitto/certs
+cd /etc/mosquitto/certs/
+
+printf "\nGénération des Clés\n"
+
+openssl genrsa -des3 -out ca.key 2048
+openssl req -new -x509 -days 1826 -key ca.key -out ca.crt
+openssl genrsa -out server.key 2048
+openssl req -new -out server.csr -key server.key
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 360
+
+printf "\nDébut de Configuration\n"
+
+echo "listener 8883
+cafile /etc/mosquitto/certs/ca.crt
+keyfile /etc/mosquitto/certs/server.key
+certfile /etc/mosquitto/certs/server.crt" > /etc/mosquitto/conf.d/default.conf
+
+printf "\nInstallation Terminé.\n"
