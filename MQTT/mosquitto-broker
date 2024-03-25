@@ -1,0 +1,5 @@
+#!/bin/bash
+
+service mosquitto stop
+
+mosquitto -C /etc/mosquitto/conf.d/default.conf
