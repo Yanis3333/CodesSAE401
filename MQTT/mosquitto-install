@@ -10,9 +10,9 @@ configure_mosquitto() {
     printf "\nGénération des clés et certificats\n"
     # Génération des clés et certificats
     openssl genrsa -des3 -out /etc/mosquitto/certs/ca.key 2048
-    openssl req -new -x509 -days 1826 -key /etc/mosquitto/certs/ca.key -out /etc/mosquitto/certs/ca.crt -subj "/C=FR/ST=State/L=Location/O=Organization/CN=CA"
+    openssl req -new -x509 -days 1826 -key /etc/mosquitto/certs/ca.key -out /etc/mosquitto/certs/ca.crt -subj "/C=FR/ST=BFC/L=Montbéliard/O=IUT/CN=CA"
     openssl genrsa -out /etc/mosquitto/certs/server.key 2048
-    openssl req -new -out /etc/mosquitto/certs/server.csr -key /etc/mosquitto/certs/server.key -subj "/C=FR/ST=State/L=Location/O=Organization/CN=Server"
+    openssl req -new -out /etc/mosquitto/certs/server.csr -key /etc/mosquitto/certs/server.key -subj "/C=FR/ST=BFC/L=Montbéliard/O=IUT/CN=Server"
     openssl x509 -req -in /etc/mosquitto/certs/server.csr -CA /etc/mosquitto/certs/ca.crt -CAkey /etc/mosquitto/certs/ca.key -CAcreateserial -out /etc/mosquitto/certs/server.crt -days 360
 
     printf "\nConfiguration de Mosquitto\n"
