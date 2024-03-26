@@ -1,0 +1,4 @@
+### 4. InfluxDB
+
+InfluxDB peut être utilisé comme base de données pour stocker les données de séries temporelles provenant des capteurs. 
+Les données peuvent être stockées pour l'analyse à long terme, la génération de rapports et la détection de tendances.
