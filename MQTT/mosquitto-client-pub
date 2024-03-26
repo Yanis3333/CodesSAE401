@@ -1,13 +1,14 @@
 #!/bin/bash
 
 if [ $# -eq 0 ]; then
-    echo "Utilisation: $0 <IP> <topic> <message>"
-    echo "Exemple: $0 192.168.1.145 mytopic 'Hello, world!'"
+    echo "Utilisation: $0 <topic> <message>"
+    echo "Exemple: $0 mytopic 'Hello, world!'"
     exit 1
 fi
 
-ip=$1
-topic=$2
-message=$3
+#ip=$1
+topic=$1
+message=$2
 
-mosquitto_pub -h $ip -p 8883 -t "$topic" -m "$message" --cafile /etc/mosquitto/certs/certificate.pem --cert /etc/mosquitto/certs/certificate.pem --key /etc/mosquitto/certs/key.pem --insecure
+#mosquitto_pub -h $ip -p 8883 -t "$topic" -m "$message" --cafile /etc/mosquitto/certs/certificate.pem --cert /etc/mosquitto/certs/certificate.pem --key /etc/mosquitto/certs/key.pem --insecure
+mosquitto_pub -h 192.168.1.148 -p 1883 -t "$topic" -m "$message"
