@@ -1,0 +1,23 @@
+#!/bin/bash
+rm /etc/mosquitto/certs/*
+
+country = "FR"
+state = "BFC"
+city = "Montbeliard"
+organization = "IUT"
+common_name_serv = "mosquitto.serv"
+common_name = "common.name"
+
+openssl genrsa -des3 -out ca.key 2048
+openssl req -new -x509 -days 1826 -key ca.key -out ca.crt\
+    -subj "/C=$country/ST=$state/L=$city/O=$organization/CN=$common_name_serv"
+
+openssl genrsa -out server.key 2048
+openssl req -new -out server.csr -key server.key \
+    -subj "/C=$country/ST=$state/L=$city/O=$organization/CN=$common_name_serv"
+
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 360
+
+cp server.* /etc/mosquitto/certs/
+cp ca.* /etc/mosquitto/certs/
+chmod 644 /etc/mosquitto/certs/*
