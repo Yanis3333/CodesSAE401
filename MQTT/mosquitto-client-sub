@@ -1,13 +1,3 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-    echo "Utilisation: $0 <topic>"
-    echo "Exemple: $0 mytopic"
-    echo "Cela exécutera la commande mosquitto_sub avec les paramètres par défaut."
-    exit 1
-fi
-
-topic=$1
-
-#mosquitto_sub -h $ip -p 8883 -t "$topic" --cafile /etc/mosquitto/certs/certificate.pem --cert /etc/mosquitto/certs/certificate.pem --key /etc/mosquitto/certs/key.pem --insecure
-mosquitto_sub -h 192.168.1.148 -p 1883 -t "$topic"
+mosquitto_sub -h 192.168.1.50 -p 8883 -t \# --cafile /etc/mosquitto/certs/ca.crt -u GRP-1-IOM -P Porygon-Z#1 -v
