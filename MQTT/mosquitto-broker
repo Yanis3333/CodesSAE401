@@ -4,4 +4,4 @@ service mosquitto stop
 
 printf "Lancement du Service Mosquitto..."
 
-mosquitto -C /etc/mosquitto/conf.d/default.conf
+/usr/sbin/mosquitto -c /etc/mosquitto/conf.d/default.conf
