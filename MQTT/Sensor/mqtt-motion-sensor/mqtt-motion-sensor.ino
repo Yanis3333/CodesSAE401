@@ -47,6 +47,7 @@ unsigned long lastMotionTime = 0;
 const unsigned long MOTION_TIMEOUT = 5 * 60 * 1000; // 5 minutes en millisecondes
 bool motionMessageSent = false; // Variable pour garder une trace de l'envoi du message "0"
 bool motionDetectedPreviously = false; // Variable pour garder une trace de l'état précédent du capteur
+unsigned long lastChangeTime = 0; // Variable pour garder une trace du dernier changement d'état
 
 void setClock() {
   // Configuration de l'heure à partir de serveurs NTP
@@ -77,6 +78,7 @@ void setup_wifi() {
     delay(500);
     Serial.print(".");
   }
+  randomSeed(micros());
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
@@ -84,7 +86,7 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  // Callback appelé lorsqu'un message MQTT est reçu
+  // Callback pour traiter les messages MQTT reçus
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -95,7 +97,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void reconnect() {
-  // Reconnexion au broker MQTT en cas de déconnexion
+  // Reconnexion au broker MQTT
   char err_buf[256];
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
@@ -117,8 +119,12 @@ void reconnect() {
 
 void setup() {
   // Initialisation du programme
-
   Serial.begin(115200);
+
+  //Configuration du certificat
+  BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(ca_cert);
+  espClient.setTrustAnchors(serverTrustedCA);
+  espClient.setInsecure();
   
   // Configuration de la connexion WiFi
   setup_wifi();
@@ -129,6 +135,8 @@ void setup() {
   // Configuration du client MQTT
   client.setServer(mqtt_server, 8883);
   client.setCallback(callback);
+
+  // Configuration de la broche pour le capteur de mouvement
   pinMode(MOTION_PIN, INPUT);
 }
 
@@ -157,11 +165,13 @@ void loop() {
     }
   } else if (motionDetected == LOW && currentTime - lastMotionTime >= MOTION_TIMEOUT && !motionMessageSent) {
     // Si aucun mouvement n'est détecté depuis un certain temps et qu'aucun message "0" n'a été envoyé
+    Serial.println("No motion detected for 5 minutes.");
     client.publish(mqtt_topic, "0"); // Envoyer un message MQTT
     motionDetectedPreviously = false;
     motionMessageSent = true;
   } else if (motionDetected == HIGH && currentTime - lastMotionTime >= MOTION_TIMEOUT) {
     // Si un mouvement est détecté depuis un certain temps
+    Serial.println("Du mouvement depuis 5 minutes");
     client.publish(mqtt_topic, "1"); // Envoyer un message MQTT
     lastMotionTime = currentTime;
   } else if (motionDetected == HIGH) {
