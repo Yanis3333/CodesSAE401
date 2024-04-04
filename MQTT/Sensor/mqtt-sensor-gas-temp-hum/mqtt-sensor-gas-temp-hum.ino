@@ -22,40 +22,49 @@ H6gS
 -----END CERTIFICATE-----
 )EOF";
 
+// Inclusion des bibliothèques nécessaires
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <MQ135.h>
 #include <DHT11.h>
 
+// Déclaration des constantes pour les broches et les paramètres du capteur DHT11
 #define DHTPIN 2 // Broche du capteur DHT11 (GPIO2 ou D4 pour ESP8266)
 const int ANALOG_PIN = A0; // Broche analogique à laquelle le capteur MQ135 est connecté
+
+// Création d'instances des capteurs
 MQ135 gasSensor = MQ135(ANALOG_PIN);
 DHT11 dht11(DHTPIN);
 
-// Update these with values suitable for your network.
+// Paramètres de connexion WiFi
+const char* ssid = "GRP-1-IOM"; // SSID du réseau WiFi
+const char* password = "Porygon-Z#1"; // Mot de passe du réseau WiFi
+const char* mqtt_server = "192.168.1.50"; // Adresse IP du serveur MQTT
+const char* MqttUser = "GRP-1-IOM"; // Nom d'utilisateur MQTT
+const char* MqttPass = "Porygon-Z#1"; // Mot de passe MQTT
 
-const char* ssid = "GRP-1-IOM";
-const char* password = "Porygon-Z#1";
-const char* mqtt_server = "192.168.1.50";
-const char* MqttUser = "GRP-1-IOM";
-const char* MqttPass = "Porygon-Z#1";
+// Définition des topics MQTT pour chaque type de données
+const char* mqtt_topic_temp = "/Sensor/Temperature/"; // Topic pour la température
+const char* mqtt_topic_humid = "/Sensor/Humidity/"; // Topic pour l'humidité
+const char* mqtt_topic_gas = "/Sensor/Gas/"; // Topic pour le CO2
 
-const char* mqtt_topic_temp = "/Sensor/Temperature/";
-const char* mqtt_topic_humid = "/Sensor/Humidity/";
-const char* mqtt_topic_gas = "/Sensor/Gas/";
+// Déclaration des clients MQTT et WiFi
+BearSSL::WiFiClientSecure espClient; // Client WiFi sécurisé
+PubSubClient client(espClient); // Client MQTT
 
-BearSSL::WiFiClientSecure espClient;
-PubSubClient client(espClient);
+// Déclaration de variables pour la gestion des messages
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE	(50)
 char msg[MSG_BUFFER_SIZE];
 int value = 0;
 
-void setClock()
-{
+// Fonction de configuration de l'horloge pour la validation X.509
+void setClock() {
+  // Configuration de la synchronisation NTP
   configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
 
   Serial.print("Waiting for NTP time sync: ");
+  // Attente de la synchronisation NTP
   time_t now = time(nullptr);
   while (now < 8 * 3600 * 2) {
     delay(500);
@@ -63,28 +72,32 @@ void setClock()
     now = time(nullptr);
   }
   Serial.println("");
+  // Affichage de l'heure actuelle
   struct tm timeinfo;
   gmtime_r(&now, &timeinfo);
   Serial.print("Current time: ");
   Serial.print(asctime(&timeinfo));
 }
 
+// Fonction de configuration du réseau WiFi
 void setup_wifi() {
-
+  // Attente pour la connexion au réseau WiFi
   delay(10);
-  // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
+  // Connexion au réseau WiFi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
+  // Attente de la connexion
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
+  // Initialisation du générateur de nombres aléatoires
   randomSeed(micros());
 
   Serial.println("");
@@ -93,6 +106,7 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
+// Fonction de réception des messages MQTT
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
@@ -101,86 +115,95 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
-
 }
 
+// Fonction de reconnexion au broker MQTT
 void reconnect() {
   char err_buf[256];
-  
-  // Loop until we're reconnected
+
+  // Tentative de reconnexion
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    // Create a random client ID
+    // Génération d'un ID client aléatoire
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
-    // Attempt to connect
+    // Tentative de connexion
     if (client.connect(clientId.c_str(), MqttUser, MqttPass)) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
       Serial.println(client.state());
+      // Affichage des erreurs SSL
       espClient.getLastSSLError(err_buf, sizeof(err_buf));
       Serial.print("SSL error: ");
       Serial.println(err_buf);
       Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
+      // Attente avant nouvelle tentative
       delay(5000);
     }
   }
 }
 
+// Fonction d'initialisation du système
 void setup() {
+  // Initialisation de la communication série
   Serial.begin(115200);
+  // Création d'une liste de certificats pour le client SSL
   BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(ca_cert);
   espClient.setTrustAnchors(serverTrustedCA);
   espClient.setInsecure();
+  // Configuration du réseau WiFi
   setup_wifi();
-  setClock(); // Required for X.509 validation
+  // Configuration de l'horloge pour la validation X.509
+  setClock();
+  // Configuration du client MQTT
   client.setServer(mqtt_server, 8883);
   client.setCallback(callback);
 }
 
+// Fonction principale, exécutée en boucle
 void loop() {
-
+  // Vérification de la connexion MQTT
   if (!client.connected()) {
     reconnect();
   }
   delay(100);
-  // Lecture de la température et de l'humidité depuis le capteur DHT11
-    int temperature = 0;
-    int humidity = 0;
-    int result = dht11.readTemperatureHumidity(temperature, humidity);
 
-    // Vérification de la lecture du capteur DHT11
-    if (result == 0) {
-        // Affichage des valeurs sur le moniteur série
-        Serial.print("Température: ");
-        Serial.print(temperature);
-        Serial.print(" °C\tHumidité: ");
-        Serial.print(humidity);
-        Serial.println(" %");
+  // Lecture de la température et de l'humidité
+  int temperature = 0;
+  int humidity = 0;
+  int result = dht11.readTemperatureHumidity(temperature, humidity);
 
-        // Publication des valeurs de température et d'humidité sur MQTT
-        client.loop();
-        client.publish(mqtt_topic_temp, String(temperature).c_str());
-        client.loop();
-        client.publish(mqtt_topic_humid, String(humidity).c_str());
-    } else {
-        // Affichage du message d'erreur
-        Serial.println(DHT11::getErrorString(result));
-    }
-
-    // Lecture de la valeur corrigée de CO2 depuis le capteur MQ135
-    float ppm = gasSensor.getCorrectedPPM(temperature, humidity) / 100;
-
+  // Vérification de la lecture du capteur DHT11
+  if (result == 0) {
     // Affichage des valeurs sur le moniteur série
-    Serial.print("Valeur CO2 corrigée: ");
-    Serial.println(ppm);
+    Serial.print("Température: ");
+    Serial.print(temperature);
+    Serial.print(" °C\tHumidité: ");
+    Serial.print(humidity);
+    Serial.println(" %");
 
-    // Publication de la valeur de CO2 sur MQTT
+    // Publication des valeurs de température et d'humidité sur MQTT
     client.loop();
-    client.publish(mqtt_topic_gas, String(ppm).c_str());
+    client.publish(mqtt_topic_temp, String(temperature).c_str());
+    client.loop();
+    client.publish(mqtt_topic_humid, String(humidity).c_str());
+  } else {
+    // Affichage du message d'erreur
+    Serial.println(DHT11::getErrorString(result));
+  }
 
-    // Pause d'une minute avant la prochaine lecture
-    delay(60000);
+  // Lecture de la valeur corrigée de CO2
+  float ppm = gasSensor.getCorrectedPPM(temperature, humidity) / 100;
+
+  // Affichage de la valeur sur le moniteur série
+  Serial.print("Valeur CO2 corrigée: ");
+  Serial.println(ppm);
+
+  // Publication de la valeur de CO2 sur MQTT
+  client.loop();
+  client.publish(mqtt_topic_gas, String(ppm).c_str());
+
+  // Pause avant la prochaine lecture
+  delay(60000); // 1 minute
 }
