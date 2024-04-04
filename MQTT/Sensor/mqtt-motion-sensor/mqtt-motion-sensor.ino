@@ -1,3 +1,4 @@
+// Certificat pour la connexion sécurisée MQTT
 static const char ca_cert[] PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIDXzCCAkegAwIBAgIUUqVmTigzEdD+eM3cbSmzJSAjDVYwDQYJKoZIhvcNAQEL
@@ -25,34 +26,31 @@ H6gS
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-// Update these with values suitable for your network.
-
+// Paramètres du réseau WiFi
 const char* ssid = "GRP-1-IOM";
 const char* password = "Porygon-Z#1";
+
+// Paramètres MQTT
 const char* MqttUser = "GRP-1-IOM";
 const char* MqttPass = "Porygon-Z#1";
 const char* mqtt_server = "192.168.1.50";
 const int MOTION_PIN = A0;
 const char* mqtt_topic = "/Sensor/Motion/";
 
+// Client MQTT et connexion sécurisée
 BearSSL::WiFiClientSecure espClient;
 PubSubClient client(espClient);
-unsigned long lastMsg = 0;
-#define MSG_BUFFER_SIZE	(50)
-char msg[MSG_BUFFER_SIZE];
-int value = 0;
+
+// Variables pour le capteur de mouvement
 int lastMotionState = LOW;
 unsigned long lastMotionTime = 0;
 const unsigned long MOTION_TIMEOUT = 5 * 60 * 1000; // 5 minutes en millisecondes
 bool motionMessageSent = false; // Variable pour garder une trace de l'envoi du message "0"
 bool motionDetectedPreviously = false; // Variable pour garder une trace de l'état précédent du capteur
-bool lastPublishedState = false; // Variable pour garder une trace du dernier état publié
-unsigned long lastChangeTime = 0; // Variable pour garder une trace du dernier changement d'état
 
-void setClock()
-{
+void setClock() {
+  // Configuration de l'heure à partir de serveurs NTP
   configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
-
   Serial.print("Waiting for NTP time sync: ");
   time_t now = time(nullptr);
   while (now < 8 * 3600 * 2) {
@@ -68,23 +66,17 @@ void setClock()
 }
 
 void setup_wifi() {
-
+  // Configuration de la connexion WiFi
   delay(10);
-  // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
-
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-
-  randomSeed(micros());
-
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
@@ -92,6 +84,7 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
+  // Callback appelé lorsqu'un message MQTT est reçu
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -99,19 +92,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
-
 }
 
 void reconnect() {
+  // Reconnexion au broker MQTT en cas de déconnexion
   char err_buf[256];
-  
-  // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    // Create a random client ID
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
-    // Attempt to connect
     if (client.connect(clientId.c_str(), MqttUser, MqttPass)) {
       Serial.println("connected");
     } else {
@@ -121,63 +110,64 @@ void reconnect() {
       Serial.print("SSL error: ");
       Serial.println(err_buf);
       Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
       delay(5000);
     }
   }
 }
 
 void setup() {
+  // Initialisation du programme
+
   Serial.begin(115200);
-  BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(ca_cert);
-  espClient.setTrustAnchors(serverTrustedCA);
-  espClient.setInsecure();
+  
+  // Configuration de la connexion WiFi
   setup_wifi();
-  setClock(); // Required for X.509 validation
+  
+  // Configuration de l'heure à partir de serveurs NTP
+  setClock();
+
+  // Configuration du client MQTT
   client.setServer(mqtt_server, 8883);
   client.setCallback(callback);
   pinMode(MOTION_PIN, INPUT);
 }
 
-
 void loop() {
-
+  // Boucle principale du programme
   if (!client.connected()) {
     reconnect();
   }
-  delay(100);
-  
+  client.loop();
+
+  // Lecture de la valeur du capteur de mouvement
   int motionDetected = (analogRead(MOTION_PIN) > 900) ? HIGH : LOW;
   unsigned long currentTime = millis();
-  Serial.print("Motion Value : ");
-  Serial.println(analogRead(MOTION_PIN));
 
   if (motionDetected != lastMotionState) {
     lastMotionState = motionDetected;
     lastMotionTime = currentTime;
     if (motionDetected == HIGH) {
-      Serial.println("Mouvement détecté");
+      // Si un mouvement est détecté
+      Serial.println("Motion detected");
       if (!motionDetectedPreviously) {
-        client.loop();
-        client.publish(mqtt_topic, "1");
+        // Si c'est le premier mouvement détecté depuis la dernière détection
+        client.publish(mqtt_topic, "1"); // Envoyer un message MQTT
         motionDetectedPreviously = true;
       }
     }
   } else if (motionDetected == LOW && currentTime - lastMotionTime >= MOTION_TIMEOUT && !motionMessageSent) {
-    Serial.println("Pas de mouvement depuis 5 minutes");
-    client.loop();
-    client.publish(mqtt_topic, "0");
+    // Si aucun mouvement n'est détecté depuis un certain temps et qu'aucun message "0" n'a été envoyé
+    client.publish(mqtt_topic, "0"); // Envoyer un message MQTT
     motionDetectedPreviously = false;
-    motionMessageSent = true; // Met à jour la variable pour indiquer que le message "0" a été envoyé
+    motionMessageSent = true;
   } else if (motionDetected == HIGH && currentTime - lastMotionTime >= MOTION_TIMEOUT) {
-    Serial.println("Du mouvement depuis 5 minutes");
-    client.loop();
-    client.publish(mqtt_topic, "1");
+    // Si un mouvement est détecté depuis un certain temps
+    client.publish(mqtt_topic, "1"); // Envoyer un message MQTT
     lastMotionTime = currentTime;
   } else if (motionDetected == HIGH) {
-    // Si le mouvement est détecté à nouveau, réinitialiser motionMessageSent
+    // Si un mouvement est détecté
     motionMessageSent = false;
   }
-  
+
   delay(100);
 }
