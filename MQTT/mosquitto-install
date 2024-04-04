@@ -28,6 +28,31 @@ configure_mosquitto() {
     cp ca.* /etc/mosquitto/certs/
     chmod 644 /etc/mosquitto/certs/*
 
+    # Chemin du fichier de mots de passe
+    password_file="/etc/mosquitto/auth.txt"
+
+    # Vérifier si le fichier de mots de passe existe déjà
+    if [ -f "$password_file" ]; then
+        echo "Le fichier de mots de passe existe déjà."
+    else
+        echo "Le fichier de mots de passe n'existe pas. Création du fichier..."
+        mosquitto_passwd -c "$password_file" "$default_username"
+        chmod 600 "$password_file"
+    fi
+
+    # Ajouter l'utilisateur par défaut
+    default_username="GRP-1-IOM"
+    default_password="Porygon-Z#1"
+
+    # Vérifier si l'utilisateur par défaut existe déjà dans le fichier de mots de passe
+    if grep -q "^$default_username:" "$password_file"; then
+        echo "L'utilisateur par défaut existe déjà dans le fichier de mots de passe."
+    else
+        echo "Ajout de l'utilisateur par défaut dans le fichier de mots de passe..."
+        echo "$default_username:$(mosquitto_passwd -p <<< "$default_password")" >> "$password_file"
+        echo "Utilisateur par défaut ajouté avec succès."
+    fi
+
     #scp grp-1-iom@192.168.1.50:/etc/mosquitto/certs/ca.crt pi@192.168.1.60:/home/pi/Documents/ca.crt
     #scp grp-1-iom@192.168.1.50:/etc/mosquitto/certs/ca.crt /home/teto/Documents/Projet/Bash/ca.crt
 
@@ -35,6 +60,7 @@ configure_mosquitto() {
     # Configuration de Mosquitto
     echo "listener 8883
 allow_anonymous false
+password_file /etc/mosquitto/auth.txt
 cafile /etc/mosquitto/certs/ca.crt
 keyfile /etc/mosquitto/certs/server.key
 certfile /etc/mosquitto/certs/server.crt" > /etc/mosquitto/conf.d/default.conf
