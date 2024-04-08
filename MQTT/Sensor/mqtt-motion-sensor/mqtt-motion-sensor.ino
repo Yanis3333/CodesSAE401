@@ -159,6 +159,8 @@ void setup() {
 
   // Configuration de la broche pour le capteur de mouvement
   pinMode(MOTION_PIN, INPUT);
+  // Configuration de la led interne
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
