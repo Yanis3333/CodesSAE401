@@ -29,7 +29,7 @@ H6gS
 #include <DHT11.h>
 
 // Déclaration des constantes pour les broches et les paramètres du capteur DHT11
-#define DHTPIN 2 // Broche du capteur DHT11 (GPIO2 ou D4 pour ESP8266)
+#define DHTPIN 4 // Broche du capteur DHT11 (GPIO2 ou D4 pour ESP8266)
 const int ANALOG_PIN = A0; // Broche analogique à laquelle le capteur MQ135 est connecté
 
 // Création d'instances des capteurs
@@ -218,7 +218,7 @@ void loop() {
   }
 
   // Lecture de la valeur corrigée de CO2
-  float ppm = gasSensor.getCorrectedPPM(temperature, humidity) / 100;
+  float ppm = gasSensor.getCorrectedPPM(temperature, humidity);
 
   // Affichage de la valeur sur le moniteur série
   Serial.print("Valeur CO2 corrigée: ");
@@ -229,5 +229,9 @@ void loop() {
   client.publish(mqtt_topic_gas, String(ppm).c_str());
 
   // Pause avant la prochaine lecture
-  delay(60000); // 1 minute
+  // 1 minute
+  for(int i =0; i < 300; i++){
+    delay(200);
+    client.loop();
+  }
 }
