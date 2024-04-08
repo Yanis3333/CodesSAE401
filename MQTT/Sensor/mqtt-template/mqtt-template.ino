@@ -94,7 +94,8 @@ void reconnect() {
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     if (client.connect(clientId.c_str(), MqttUser, MqttPass)) {
-      String SubTopic = "/" + ESPName + "/led/";
+      char SubTopic[50];
+      sprintf(SubTopic, "/%s/led/", ESPName);
       client.subscribe(SubTopic);
     } else {
       Serial.print("failed, rc=");
