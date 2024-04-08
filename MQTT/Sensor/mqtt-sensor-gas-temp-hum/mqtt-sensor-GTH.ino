@@ -47,6 +47,7 @@ const char* MqttPass = "Porygon-Z#1"; // Mot de passe MQTT
 const char* mqtt_topic_temp = "/Sensor/Temperature/"; // Topic pour la température
 const char* mqtt_topic_humid = "/Sensor/Humidity/"; // Topic pour l'humidité
 const char* mqtt_topic_gas = "/Sensor/Gas/"; // Topic pour le CO2
+const char* ESPName = "ESP-GTH";
 
 // Déclaration des clients MQTT et WiFi
 BearSSL::WiFiClientSecure espClient; // Client WiFi sécurisé
@@ -107,14 +108,32 @@ void setup_wifi() {
 }
 
 // Fonction de réception des messages MQTT
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
+void onMqttMessage(char* topic, byte* payload, unsigned int length) {
+  //Serial.print("Message reçu [");
   Serial.print(topic);
-  Serial.print("] ");
+  //Serial.print("] ");
+  
+  // Convertir le payload en une chaîne de caractères
+  String payloadStr = "";
   for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+    payloadStr += (char)payload[i];
   }
-  Serial.println();
+  Serial.println(payloadStr);
+
+  // Comparer la chaîne de caractères du payload avec "true" ou "false"
+  if(payloadStr == "true"){
+    // Allumer la LED
+    digitalWrite(LED_BUILTIN, LOW);
+    Serial.print("L'");
+    Serial.print(ESPName);
+    Serial.println(" a allumé sa LED.");
+  } else if(payloadStr == "false"){
+    // Eteindre la LED
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.print("L'");
+    Serial.print(ESPName);
+    Serial.println(" a éteint sa LED.");
+  }
 }
 
 // Fonction de reconnexion au broker MQTT
@@ -129,7 +148,9 @@ void reconnect() {
     clientId += String(random(0xffff), HEX);
     // Tentative de connexion
     if (client.connect(clientId.c_str(), MqttUser, MqttPass)) {
-      Serial.println("connected");
+      char SubTopic[50];
+      sprintf(SubTopic, "/%s/led/", ESPName);
+      client.subscribe(SubTopic);
     } else {
       Serial.print("failed, rc=");
       Serial.println(client.state());
@@ -158,7 +179,10 @@ void setup() {
   setClock();
   // Configuration du client MQTT
   client.setServer(mqtt_server, 8883);
-  client.setCallback(callback);
+  client.setCallback(onMqttMessage);
+
+  // Configuration de la led interne
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 // Fonction principale, exécutée en boucle
@@ -168,7 +192,7 @@ void loop() {
     reconnect();
   }
   delay(100);
-
+  client.loop();
   // Lecture de la température et de l'humidité
   int temperature = 0;
   int humidity = 0;
