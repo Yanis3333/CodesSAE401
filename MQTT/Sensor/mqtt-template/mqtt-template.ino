@@ -129,6 +129,9 @@ void setup() {
   // Configuration du client MQTT
   client.setServer(mqtt_server, 8883);
   client.setCallback(onMqttMessage);
+
+  // Configuration de la led interne
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
