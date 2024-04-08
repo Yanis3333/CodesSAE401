@@ -35,6 +35,7 @@ const char* MqttUser = "GRP-1-IOM";
 const char* MqttPass = "Porygon-Z#1";
 const char* mqtt_server = "192.168.1.50";
 const char* mqtt_topic = "/Sensor/Template/";
+const char* ESPName = "ESP-Template";
 
 // Client MQTT et connexion sécurisée
 BearSSL::WiFiClientSecure espClient;
@@ -59,15 +60,30 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  // Callback pour traiter les messages MQTT reçus
-  Serial.print("Message arrived [");
+void onMqttMessage(char* topic, byte* payload, unsigned int length) {
+  //Serial.print("Message reçu [");
   Serial.print(topic);
-  Serial.print("] ");
+  //Serial.print("] ");
+  
+  // Convertir le payload en une chaîne de caractères
+  String payloadStr = "";
   for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+    payloadStr += (char)payload[i];
   }
-  Serial.println();
+  Serial.println(payloadStr);
+
+  // Comparer la chaîne de caractères du payload avec "true" ou "false"
+  if(payloadStr == "true"){
+    digitalWrite(LED_BUILTIN, LOW);
+    Serial.print("L'");
+    Serial.print(ESPName);
+    Serial.println(" a allumé sa LED.");
+  } else if(payloadStr == "false"){
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.print("L'");
+    Serial.print(ESPName);
+    Serial.println(" a éteint sa LED.");
+  }
 }
 
 void reconnect() {
@@ -78,7 +94,8 @@ void reconnect() {
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     if (client.connect(clientId.c_str(), MqttUser, MqttPass)) {
-      Serial.println("connected");
+      String SubTopic = "/" + ESPName + "/led/";
+      client.subscribe(SubTopic);
     } else {
       Serial.print("failed, rc=");
       Serial.println(client.state());
@@ -108,7 +125,7 @@ void setup() {
 
   // Configuration du client MQTT
   client.setServer(mqtt_server, 8883);
-  client.setCallback(callback);
+  client.setCallback(onMqttMessage);
 }
 
 void loop() {
@@ -119,5 +136,5 @@ void loop() {
   client.loop();
   
   client.publish(mqtt_topic, "test"); // Envoyer un message MQTT
-  delay(60000);
+  delay(1000);
 }
