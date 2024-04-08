@@ -7,8 +7,8 @@ Ce répertoire contient des programmes et des fichiers associés à MQTT, un pro
 
 - **MQTT/** : Ce répertoire contient des programmes et des fichiers liés à MQTT.
   - **Sensor/** : Ce répertoire contient des exemples de programmes pour des capteurs MQTT.
-    - **mqtts-sensor-motion.ino** : Programme Arduino pour un capteur de mouvement MQTT.
-    - **mqtts-sensor-gas-temp-hum** : Programme Arduino pour un capteur de gaz, température et humidité MQTT basé sur ESP8266.
+    - **mqtts-motion-sensor.ino** : Programme Arduino pour un capteur de mouvement MQTT.
+    - **mqtts-gth-sensor** : Programme Arduino pour un capteur de gaz, température et humidité MQTT basé sur ESP8266.
   - **mosquitto-broker** : Permet l'éxecution du broker Mosquitto, un serveur MQTT open source.
   - **mosquitto-certs** : Générateur de certificats pour la sécurisation du broker Mosquitto avec SSL/TLS.
   - **mosquitto-client-pub** : Client MQTT simplifié pour publier des messages sur un broker.
@@ -28,7 +28,7 @@ Ce répertoire vise à faciliter le déploiement et le développement de systèm
 
 Plus de détails ci-dessous.
 
-### Capteur de mouvement MQTT (mqtts-sensor-motion.ino)
+### Capteur de mouvement MQTT (mqtt-motion-sensor.ino)
 
 Ce programme est destiné à être utilisé avec un capteur de mouvement connecté à un microcontrôleur ESP8266. Il envoie des messages MQTT lorsqu'il détecte un mouvement ou lorsque aucun mouvement n'est détecté pendant une certaine période. Avant d'exécuter ce script, assurez-vous de :
 
@@ -36,7 +36,7 @@ Ce programme est destiné à être utilisé avec un capteur de mouvement connect
 - Avoir correctement configuré les paramètres WiFi, les identifiants MQTT et l'adresse IP du serveur MQTT dans le script.
 - Assurez-vous également que votre broker MQTT est opérationnel et accessible depuis votre réseau.
 
-### Capteur de gaz, température et humidité MQTT (mqtts-sensor-gas-temp-hum.ino)
+### Capteur de gaz, température et humidité MQTT (mqtt-gth-sensor.ino)
 
 Ce programme est conçu pour être utilisé avec un capteur combiné de gaz, de température et d'humidité connecté à un microcontrôleur ESP8266. Il envoie des messages MQTT avec les lectures de température, d'humidité et de gaz à intervalles réguliers. Avant d'exécuter ce script, assurez-vous de :
 
