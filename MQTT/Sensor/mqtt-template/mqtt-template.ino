@@ -74,11 +74,13 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
 
   // Comparer la chaîne de caractères du payload avec "true" ou "false"
   if(payloadStr == "true"){
+    // Allumer la LED
     digitalWrite(LED_BUILTIN, LOW);
     Serial.print("L'");
     Serial.print(ESPName);
     Serial.println(" a allumé sa LED.");
   } else if(payloadStr == "false"){
+    // Eteindre la LED
     digitalWrite(LED_BUILTIN, HIGH);
     Serial.print("L'");
     Serial.print(ESPName);
