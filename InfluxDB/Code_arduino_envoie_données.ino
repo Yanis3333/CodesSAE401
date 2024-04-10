@@ -17,7 +17,7 @@
   // WiFi password
   #define WIFI_PASSWORD "Porygon-Z#1"
   
-  #define INFLUXDB_URL "http://192.168.1.148:8086"
+  #define INFLUXDB_URL "http://192.168.1.50:8086"
   #define INFLUXDB_TOKEN "fZ6rmd4kyjiLYrBJc91PrAb3EwtKQ-oF1OGr3I8e37eZpSz7E16xPKouo-JmaA-eMkHMVFHemMFo2l9GFTzKZw=="
   #define INFLUXDB_ORG "031344a0b9fb2a63"
   #define INFLUXDB_BUCKET "GRP1-S4-IOM"
